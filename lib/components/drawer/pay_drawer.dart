@@ -2,63 +2,57 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
 
-class OrderDrawer extends StatefulWidget {
+class PayDrawer extends StatefulWidget {
   static const String id = "order_drawer";
-  OrderDrawer({this.tableNumber});
+  PayDrawer({this.tableNumber});
 
   final int tableNumber;
 
   @override
-  _OrderDrawerState createState() => _OrderDrawerState();
+  _PayDrawerState createState() => _PayDrawerState();
 }
 
-class _OrderDrawerState extends State<OrderDrawer> {
+class _PayDrawerState extends State<PayDrawer> {
   final _firestore = Firestore.instance;
 
-  Future acceptOrder({food, beverages}) async {
-    if (food.isNotEmpty || beverages.isNotEmpty) {
-      setState(
-        () async {
-          print("order accepted");
-          Navigator.pop(context);
+  Future acceptPayRequest({food, beverages}) async {
+    setState(
+      () async {
+        print("pay request accepted");
+        Navigator.pop(context);
 
-          //UPDATE STATUS
+        //UPDATE STATUS
+        await Firestore.instance
+            .collection('restaurants')
+            .document('venezia')
+            .collection('tables')
+            .document("${widget.tableNumber}")
+            .updateData({"status": "paid"});
+
+        // CHECK AS PAID
+        QuerySnapshot querySnapshot = await Firestore.instance
+            .collection('restaurants')
+            .document('venezia')
+            .collection('tables')
+            .document("${widget.tableNumber}")
+            .collection("orders")
+            .getDocuments();
+
+        for (int i = 0; i < querySnapshot.documents.length; i++) {
+          var item = querySnapshot.documents[i].documentID;
+          print(item);
           await Firestore.instance
               .collection('restaurants')
               .document('venezia')
               .collection('tables')
               .document("${widget.tableNumber}")
-              .updateData({"status": "accepted"});
-
-          // ACCEPT ORDER
-          QuerySnapshot querySnapshot = await Firestore.instance
-              .collection('restaurants')
-              .document('venezia')
-              .collection('tables')
-              .document("${widget.tableNumber}")
               .collection("orders")
-              .getDocuments();
-
-          for (int i = 0; i < querySnapshot.documents.length; i++) {
-            var item = querySnapshot.documents[i].documentID;
-            print(item);
-            await Firestore.instance
-                .collection('restaurants')
-                .document('venezia')
-                .collection('tables')
-                .document("${widget.tableNumber}")
-                .collection("orders")
-                .document("$item")
-                .updateData({"inProgress": true});
-          }
-        },
-      );
-    } else {
-      print("nothing to check");
-    }
+              .document("$item")
+              .updateData({"isPaid": true});
+        }
+      },
+    );
   }
-
-  Future streamFunction() async {}
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +112,7 @@ class _OrderDrawerState extends State<OrderDrawer> {
               completeOrder.insert(0, order);
             }
           }
+
           return Stack(
             children: [
               ListView(
@@ -132,10 +127,9 @@ class _OrderDrawerState extends State<OrderDrawer> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Tisch ${widget.tableNumber}",
+                          "Bezahlen",
                           style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width / 45,
-                            fontWeight: FontWeight.bold,
+                            fontSize: MediaQuery.of(context).size.width / 55,
                             letterSpacing: 1,
                           ),
                         ),
@@ -157,7 +151,20 @@ class _OrderDrawerState extends State<OrderDrawer> {
                     ),
                   ),
                   SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.01,
+                    height: MediaQuery.of(context).size.height * 0.05,
+                  ),
+                  Center(
+                    child: Text(
+                      "Tisch ${widget.tableNumber}",
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width / 40,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.04,
                   ),
                   Padding(
                     padding:
@@ -167,13 +174,14 @@ class _OrderDrawerState extends State<OrderDrawer> {
                       children: [
                         Column(
                           children: [
-                            if (food.isNotEmpty)
-                              Column(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Text(
-                                      "Speisen:",
+                            Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "Zahlungsart:",
                                       style: TextStyle(
                                         fontSize:
                                             MediaQuery.of(context).size.width /
@@ -181,27 +189,26 @@ class _OrderDrawerState extends State<OrderDrawer> {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 150,
-                                  ),
-                                  Column(
-                                    children: food,
-                                  ),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 40,
-                                  ),
-                                ],
-                              ),
-                            if (beverages.isNotEmpty)
-                              Column(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Text(
-                                      "Getränke:",
+                                    Text(
+                                      "Bar",
+                                      style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                60,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.width * 0.03,
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "Getrennt/Zusammen:",
                                       style: TextStyle(
                                         fontSize:
                                             MediaQuery.of(context).size.width /
@@ -209,49 +216,54 @@ class _OrderDrawerState extends State<OrderDrawer> {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 150,
-                                  ),
-                                  Column(
-                                    children: beverages,
-                                  ),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 20,
-                                  ),
-                                ],
-                              ),
-                            if (completeOrder.isNotEmpty)
-                              Column(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Text(
-                                      "Bestellt:",
+                                    Text(
+                                      "Zusammen",
                                       style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              70,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87),
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                60,
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 150,
-                                  ),
+                                  ],
+                                ),
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.width * 0.05,
+                                  child: Divider(),
+                                ),
+                                if (completeOrder.isNotEmpty)
                                   Column(
-                                    children: completeOrder,
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.topLeft,
+                                        child: Text(
+                                          "Bestellt:",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  70,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black87),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                150,
+                                      ),
+                                      Column(
+                                        children: completeOrder,
+                                      ),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.15,
+                                      ),
+                                    ],
                                   ),
-                                  SizedBox(
-                                    height: MediaQuery.of(context).size.height *
-                                        0.15,
-                                  ),
-                                ],
-                              ),
+                              ],
+                            ),
                           ],
                         ),
                       ],
@@ -287,7 +299,7 @@ class _OrderDrawerState extends State<OrderDrawer> {
                             BorderRadius.only(bottomLeft: Radius.circular(15)),
                       ),
                       child: Text(
-                        "Bestellung Annehmen",
+                        "Bezahl Anfrage Aufnehmen",
                         style: TextStyle(
                           fontSize: MediaQuery.of(context).size.width / 70,
                           fontWeight: FontWeight.bold,
@@ -296,7 +308,7 @@ class _OrderDrawerState extends State<OrderDrawer> {
                         ),
                       ),
                       onPressed: () {
-                        acceptOrder(food: food, beverages: beverages);
+                        acceptPayRequest(food: food, beverages: beverages);
                       }),
                 ),
               )

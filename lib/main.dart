@@ -25,6 +25,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: "Roboto",
       ),
+      builder: (context, child) {
+        return ScrollConfiguration(
+          behavior: MyBehavior(),
+          child: child,
+        );
+      },
       onGenerateRoute: RouteGenerator.generateRoute,
       initialRoute: HomeScreen.id,
     );
