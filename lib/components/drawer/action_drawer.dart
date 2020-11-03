@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
 
 class ActionDrawer extends StatefulWidget {
@@ -13,27 +14,29 @@ class ActionDrawer extends StatefulWidget {
 }
 
 class _ActionDrawerState extends State<ActionDrawer> {
-  final _firestore = Firestore.instance;
+  final _firestore = Firestore.instance
+      .collection("restaurants")
+      .document("venezia")
+      .collection("tables");
 
   String message;
   bool choosen = false;
 
+  // SENDING MESSAGE
   Future sendMessage() async {
     setState(
       () async {
-        print("sending message");
+        // RETURN TO HOMESCREEN
         Navigator.pop(context);
 
         //SEND MESSAGE
-        await Firestore.instance
-            .collection('restaurants')
-            .document('venezia')
-            .collection('tables')
+        await _firestore
             .document("${widget.tableNumber}")
             .collection("messages")
             .add({"message": message});
       },
     );
+    print("sending message");
   }
 
   @override
@@ -41,34 +44,31 @@ class _ActionDrawerState extends State<ActionDrawer> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(15), bottomLeft: Radius.circular(15)),
+          topLeft: Radius.circular(15),
+          bottomLeft: Radius.circular(15),
+        ),
         color: Colors.white,
       ),
-      // padding: EdgeInsets.symmetric(
-      //     horizontal: MediaQuery.of(context).size.height / 50),
       width: MediaQuery.of(context).size.width * 0.4,
       height: MediaQuery.of(context).size.height,
       child: StreamBuilder<QuerySnapshot>(
         stream: _firestore
-            .collection("restaurants")
-            .document("venezia")
-            .collection("tables")
             .document("${widget.tableNumber}")
             .collection("orders")
             .orderBy("timestamp")
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return Center(
-              child: CircularProgressIndicator(
-                backgroundColor: Colors.orangeAccent,
-              ),
-            );
+            return CustomLoadingIndicator();
           }
-          final item = snapshot.data.documents;
+
+          // LISTS FOR ITEMS
           List<Widget> food = [];
           List<Widget> beverages = [];
           List<Widget> completeOrder = [];
+
+          // CREATE ORDER ITEM
+          final item = snapshot.data.documents;
           for (var item in item) {
             final itemName = item.data['name'];
             final itemPrice = item.data['price'];
