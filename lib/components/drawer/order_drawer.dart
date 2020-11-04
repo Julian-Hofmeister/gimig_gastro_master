@@ -4,7 +4,6 @@ import 'package:gimig_gastro_master/components/elements/custom_loading_indicator
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
 
 class OrderDrawer extends StatefulWidget {
-  static const String id = "order_drawer";
   OrderDrawer({this.tableNumber});
   final int tableNumber;
 
@@ -19,8 +18,9 @@ class _OrderDrawerState extends State<OrderDrawer> {
       .collection('tables');
 
   Future<void> acceptOrder({food, beverages}) async {
-    if (food.isEmpty || beverages.isEmpty) {
+    if (food.isEmpty && beverages.isEmpty) {
       print("nothing to check");
+      print("$food $beverages");
     } else {
       setState(
         () async {
@@ -30,7 +30,7 @@ class _OrderDrawerState extends State<OrderDrawer> {
           //UPDATE STATUS
           await _firestore
               .document("${widget.tableNumber}")
-              .updateData({"status": "accepted"});
+              .updateData({"status": "normal", "ableToPay": true});
 
           // ACCEPT ORDER
           QuerySnapshot querySnapshot = await Firestore.instance
@@ -56,20 +56,24 @@ class _OrderDrawerState extends State<OrderDrawer> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
+      //STREAM
       stream: _firestore
           .document("${widget.tableNumber}")
           .collection("orders")
           .orderBy("timestamp")
           .snapshots(),
       builder: (context, snapshot) {
+        // ON ERROR
         if (!snapshot.hasData) {
           return CustomLoadingIndicator();
         }
-        final snapshotItem = snapshot.data.documents;
 
+        // ITEM LISTS
         List<Widget> completeOrder = [];
         List<Widget> beverages = [];
         List<Widget> food = [];
+
+        final snapshotItem = snapshot.data.documents;
 
         // CREATE ORDERITEM
         for (var item in snapshotItem) {

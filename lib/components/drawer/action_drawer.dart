@@ -41,61 +41,65 @@ class _ActionDrawerState extends State<ActionDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(15),
-          bottomLeft: Radius.circular(15),
-        ),
-        color: Colors.white,
-      ),
-      width: MediaQuery.of(context).size.width * 0.4,
-      height: MediaQuery.of(context).size.height,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .document("${widget.tableNumber}")
-            .collection("orders")
-            .orderBy("timestamp")
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return CustomLoadingIndicator();
+    return StreamBuilder<QuerySnapshot>(
+      //STREAM
+      stream: _firestore
+          .document("${widget.tableNumber}")
+          .collection("orders")
+          .orderBy("timestamp")
+          .snapshots(),
+      builder: (context, snapshot) {
+        // ON ERROR
+        if (!snapshot.hasData) {
+          return CustomLoadingIndicator();
+        }
+
+        // ITEM LISTS
+        List<Widget> food = [];
+        List<Widget> beverages = [];
+        List<Widget> completeOrder = [];
+
+        // CREATE ORDER ITEM
+        final item = snapshot.data.documents;
+        for (var item in item) {
+          final itemName = item.data['name'];
+          final itemPrice = item.data['price'];
+          final itemAmount = item.data['amount'];
+          final isFood = item.data['isFood'];
+
+          final inProgress = item.data['inProgress'];
+          final isPaid = item.data['isPaid'];
+
+          final order = OrderItem(
+            itemName: itemName,
+            itemPrice: itemPrice,
+            itemAmount: itemAmount,
+            inProgress: inProgress,
+          );
+
+          // SORT ORDER
+          if (isFood == true && inProgress == false) {
+            food.insert(0, order);
+          } else if (isFood == false && inProgress == false) {
+            beverages.insert(0, order);
+          } else if (isPaid == false) {
+            print("insert $order in complete Order");
+
+            completeOrder.insert(0, order);
           }
+        }
 
-          // LISTS FOR ITEMS
-          List<Widget> food = [];
-          List<Widget> beverages = [];
-          List<Widget> completeOrder = [];
-
-          // CREATE ORDER ITEM
-          final item = snapshot.data.documents;
-          for (var item in item) {
-            final itemName = item.data['name'];
-            final itemPrice = item.data['price'];
-            final itemAmount = item.data['amount'];
-            final isFood = item.data['isFood'];
-            final inProgress = item.data['inProgress'];
-            final isPaid = item.data['isPaid'];
-
-            final order = OrderItem(
-              itemName: itemName,
-              itemPrice: itemPrice,
-              itemAmount: itemAmount,
-              inProgress: inProgress,
-            );
-
-            if (isFood == true && inProgress == false) {
-              food.insert(0, order);
-            } else if (isFood == false && inProgress == false) {
-              beverages.insert(0, order);
-            } else if (isPaid == false) {
-              print("insert $order in complete Order");
-
-              completeOrder.insert(0, order);
-            }
-          }
-
-          return Stack(
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(15),
+              bottomLeft: Radius.circular(15),
+            ),
+            color: Colors.white,
+          ),
+          width: MediaQuery.of(context).size.width * 0.4,
+          height: MediaQuery.of(context).size.height * 1,
+          child: Stack(
             children: [
               ListView(
                 children: [
@@ -104,14 +108,14 @@ class _ActionDrawerState extends State<ActionDrawer> {
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).size.height / 50),
+                        horizontal: MediaQuery.of(context).size.height * 0.02),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Nachricht",
                           style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width / 55,
+                            fontSize: MediaQuery.of(context).size.width * 0.02,
                             letterSpacing: 1,
                           ),
                         ),
@@ -120,12 +124,12 @@ class _ActionDrawerState extends State<ActionDrawer> {
                             Navigator.pop(context);
                           },
                           child: Container(
-                            width: MediaQuery.of(context).size.width / 25,
-                            height: MediaQuery.of(context).size.width / 25,
+                            width: MediaQuery.of(context).size.width * 0.04,
+                            height: MediaQuery.of(context).size.width * 0.04,
                             color: Colors.green.withOpacity(0),
                             child: Icon(
                               Icons.arrow_forward_ios_sharp,
-                              size: MediaQuery.of(context).size.width / 50,
+                              size: MediaQuery.of(context).size.width * 0.02,
                             ),
                           ),
                         ),
@@ -139,7 +143,7 @@ class _ActionDrawerState extends State<ActionDrawer> {
                     child: Text(
                       "Tisch ${widget.tableNumber}",
                       style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width / 40,
+                        fontSize: MediaQuery.of(context).size.width * 0.025,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1,
                       ),
@@ -149,8 +153,8 @@ class _ActionDrawerState extends State<ActionDrawer> {
                     height: MediaQuery.of(context).size.height * 0.04,
                   ),
                   Padding(
-                    padding:
-                        EdgeInsets.all(MediaQuery.of(context).size.width / 50),
+                    padding: EdgeInsets.all(
+                        MediaQuery.of(context).size.width * 0.02),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -245,17 +249,17 @@ class _ActionDrawerState extends State<ActionDrawer> {
                                           style: TextStyle(
                                               fontSize: MediaQuery.of(context)
                                                       .size
-                                                      .width /
-                                                  70,
+                                                      .width *
+                                                  0.015,
                                               fontWeight: FontWeight.w600,
                                               color: Colors.black87),
                                         ),
                                       ),
                                       SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                150,
-                                      ),
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              0.007),
                                       Column(
                                         children: completeOrder,
                                       ),
@@ -319,9 +323,9 @@ class _ActionDrawerState extends State<ActionDrawer> {
                 ),
               )
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gimig_gastro_master/components/drawer/order_drawer.dart';
 import 'package:gimig_gastro_master/screens/home_screen.dart';
 
 class RouteGenerator {
@@ -9,9 +8,6 @@ class RouteGenerator {
     switch (settings.name) {
       case HomeScreen.id:
         return MaterialPageRoute(builder: (_) => HomeScreen());
-
-      case OrderDrawer.id:
-        return MaterialPageRoute(builder: (_) => OrderDrawer());
 
       default:
         return _errorRoute();

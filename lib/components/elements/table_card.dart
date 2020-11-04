@@ -12,7 +12,7 @@ class TableCard extends StatelessWidget {
     if (status == "ordered") {
       print("ordered");
       return Colors.redAccent;
-    } else if (status == "paying") {
+    } else if (status == "payRequest") {
       print("paying");
       return Colors.blueAccent;
     } else if (status == "accepted") {

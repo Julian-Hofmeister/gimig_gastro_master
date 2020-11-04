@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
 
 class PayDrawer extends StatefulWidget {
-  static const String id = "order_drawer";
   PayDrawer({this.tableNumber});
 
   final int tableNumber;
@@ -13,27 +13,23 @@ class PayDrawer extends StatefulWidget {
 }
 
 class _PayDrawerState extends State<PayDrawer> {
-  final _firestore = Firestore.instance;
+  final _firestore = Firestore.instance
+      .collection('restaurants')
+      .document('venezia')
+      .collection('tables');
 
   Future acceptPayRequest({food, beverages}) async {
     setState(
       () async {
-        print("pay request accepted");
         Navigator.pop(context);
 
         //UPDATE STATUS
-        await Firestore.instance
-            .collection('restaurants')
-            .document('venezia')
-            .collection('tables')
+        await _firestore
             .document("${widget.tableNumber}")
             .updateData({"status": "paid"});
 
         // CHECK AS PAID
-        QuerySnapshot querySnapshot = await Firestore.instance
-            .collection('restaurants')
-            .document('venezia')
-            .collection('tables')
+        QuerySnapshot querySnapshot = await _firestore
             .document("${widget.tableNumber}")
             .collection("orders")
             .getDocuments();
@@ -41,79 +37,79 @@ class _PayDrawerState extends State<PayDrawer> {
         for (int i = 0; i < querySnapshot.documents.length; i++) {
           var item = querySnapshot.documents[i].documentID;
           print(item);
-          await Firestore.instance
-              .collection('restaurants')
-              .document('venezia')
-              .collection('tables')
+          await _firestore
               .document("${widget.tableNumber}")
               .collection("orders")
               .document("$item")
               .updateData({"isPaid": true});
         }
+        print("PAY REQUEST ACCEPTED");
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(15), bottomLeft: Radius.circular(15)),
-        color: Colors.white,
-      ),
-      // padding: EdgeInsets.symmetric(
-      //     horizontal: MediaQuery.of(context).size.height / 50),
-      width: MediaQuery.of(context).size.width * 0.4,
-      height: MediaQuery.of(context).size.height,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection("restaurants")
-            .document("venezia")
-            .collection("tables")
-            .document("${widget.tableNumber}")
-            .collection("orders")
-            .orderBy("timestamp")
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(
-              child: CircularProgressIndicator(
-                backgroundColor: Colors.orangeAccent,
-              ),
-            );
+    return StreamBuilder<QuerySnapshot>(
+      //STREAM
+      stream: _firestore
+          .document("${widget.tableNumber}")
+          .collection("orders")
+          .orderBy("timestamp")
+          .snapshots(),
+      builder: (context, snapshot) {
+        // ON ERROR
+        if (!snapshot.hasData) {
+          return CustomLoadingIndicator();
+        }
+
+        // ITEM LISTS
+        List<Widget> completeOrder = [];
+        List<Widget> beverages = [];
+        List<Widget> food = [];
+
+        final snapshotItem = snapshot.data.documents;
+
+        // CREATE ORDERITEM
+        for (var item in snapshotItem) {
+          final itemName = item.data['name'];
+          final itemPrice = item.data['price'];
+          final itemAmount = item.data['amount'];
+          final isFood = item.data['isFood'];
+
+          final inProgress = item.data['inProgress'];
+          final isPaid = item.data['isPaid'];
+
+          final order = OrderItem(
+            itemName: itemName,
+            itemPrice: itemPrice,
+            itemAmount: itemAmount,
+            inProgress: inProgress,
+          );
+
+          // SORT ORDER
+          if (isFood == true && inProgress == false) {
+            food.insert(0, order);
+          } else if (isFood == false && inProgress == false) {
+            beverages.insert(0, order);
+          } else if (isPaid == false) {
+            print("insert $order in complete Order");
+
+            completeOrder.insert(0, order);
           }
-          final item = snapshot.data.documents;
-          List<Widget> food = [];
-          List<Widget> beverages = [];
-          List<Widget> completeOrder = [];
-          for (var item in item) {
-            final itemName = item.data['name'];
-            final itemPrice = item.data['price'];
-            final itemAmount = item.data['amount'];
-            final isFood = item.data['isFood'];
-            final inProgress = item.data['inProgress'];
-            final isPaid = item.data['isPaid'];
+        }
 
-            final order = OrderItem(
-              itemName: itemName,
-              itemPrice: itemPrice,
-              itemAmount: itemAmount,
-              inProgress: inProgress,
-            );
-
-            if (isFood == true && inProgress == false) {
-              food.insert(0, order);
-            } else if (isFood == false && inProgress == false) {
-              beverages.insert(0, order);
-            } else if (isPaid == false) {
-              print("insert $order in complete Order");
-
-              completeOrder.insert(0, order);
-            }
-          }
-
-          return Stack(
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(15),
+              bottomLeft: Radius.circular(15),
+            ),
+            color: Colors.white,
+          ),
+          width: MediaQuery.of(context).size.width * 0.4,
+          height: MediaQuery.of(context).size.height * 1,
+          child: Stack(
             children: [
               ListView(
                 children: [
@@ -122,14 +118,14 @@ class _PayDrawerState extends State<PayDrawer> {
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).size.height / 50),
+                        horizontal: MediaQuery.of(context).size.height * 0.02),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Bezahlen",
                           style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width / 55,
+                            fontSize: MediaQuery.of(context).size.width * 0.02,
                             letterSpacing: 1,
                           ),
                         ),
@@ -138,12 +134,12 @@ class _PayDrawerState extends State<PayDrawer> {
                             Navigator.pop(context);
                           },
                           child: Container(
-                            width: MediaQuery.of(context).size.width / 25,
-                            height: MediaQuery.of(context).size.width / 25,
+                            width: MediaQuery.of(context).size.width * 0.04,
+                            height: MediaQuery.of(context).size.width * 0.04,
                             color: Colors.green.withOpacity(0),
                             child: Icon(
                               Icons.arrow_forward_ios_sharp,
-                              size: MediaQuery.of(context).size.width / 50,
+                              size: MediaQuery.of(context).size.width * 0.02,
                             ),
                           ),
                         ),
@@ -157,7 +153,7 @@ class _PayDrawerState extends State<PayDrawer> {
                     child: Text(
                       "Tisch ${widget.tableNumber}",
                       style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width / 40,
+                        fontSize: MediaQuery.of(context).size.width * 0.025,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1,
                       ),
@@ -167,8 +163,8 @@ class _PayDrawerState extends State<PayDrawer> {
                     height: MediaQuery.of(context).size.height * 0.04,
                   ),
                   Padding(
-                    padding:
-                        EdgeInsets.all(MediaQuery.of(context).size.width / 50),
+                    padding: EdgeInsets.all(
+                        MediaQuery.of(context).size.width * 0.02),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -184,8 +180,8 @@ class _PayDrawerState extends State<PayDrawer> {
                                       "Zahlungsart:",
                                       style: TextStyle(
                                         fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                60,
+                                            MediaQuery.of(context).size.width *
+                                                0.015,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -193,8 +189,8 @@ class _PayDrawerState extends State<PayDrawer> {
                                       "Bar",
                                       style: TextStyle(
                                         fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                60,
+                                            MediaQuery.of(context).size.width *
+                                                0.015,
                                       ),
                                     ),
                                   ],
@@ -211,8 +207,8 @@ class _PayDrawerState extends State<PayDrawer> {
                                       "Getrennt/Zusammen:",
                                       style: TextStyle(
                                         fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                60,
+                                            MediaQuery.of(context).size.width *
+                                                0.015,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -220,8 +216,8 @@ class _PayDrawerState extends State<PayDrawer> {
                                       "Zusammen",
                                       style: TextStyle(
                                         fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                60,
+                                            MediaQuery.of(context).size.width *
+                                                0.015,
                                       ),
                                     ),
                                   ],
@@ -241,17 +237,17 @@ class _PayDrawerState extends State<PayDrawer> {
                                           style: TextStyle(
                                               fontSize: MediaQuery.of(context)
                                                       .size
-                                                      .width /
-                                                  70,
+                                                      .width *
+                                                  0.015,
                                               fontWeight: FontWeight.w600,
                                               color: Colors.black87),
                                         ),
                                       ),
                                       SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                150,
-                                      ),
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.007),
                                       Column(
                                         children: completeOrder,
                                       ),
@@ -301,7 +297,7 @@ class _PayDrawerState extends State<PayDrawer> {
                       child: Text(
                         "Bezahl Anfrage Aufnehmen",
                         style: TextStyle(
-                          fontSize: MediaQuery.of(context).size.width / 70,
+                          fontSize: MediaQuery.of(context).size.width * 0.015,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                           letterSpacing: 1,
@@ -313,9 +309,9 @@ class _PayDrawerState extends State<PayDrawer> {
                 ),
               )
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -2,9 +2,12 @@ import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:gimig_gastro_master/components/dialogs/called_service_dialog.dart';
 import 'package:gimig_gastro_master/components/drawer/action_drawer.dart';
 import 'package:gimig_gastro_master/components/drawer/order_drawer.dart';
 import 'package:gimig_gastro_master/components/drawer/pay_drawer.dart';
+import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
+import 'package:gimig_gastro_master/components/elements/image_background.dart';
 import 'package:gimig_gastro_master/components/elements/table_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,11 +18,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _firestore = Firestore.instance;
+  final _firestore = Firestore.instance
+      .collection("restaurants")
+      .document("venezia")
+      .collection("tables");
 
   int drawerTableNumber;
   String drawerStatus;
 
+  //CHECK DRAWER
   Widget checkDrawer() {
     if (drawerStatus == "orderRequest" || drawerStatus == "ordered") {
       return OrderDrawer(tableNumber: drawerTableNumber);
@@ -29,9 +36,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (drawerStatus == "normal" || drawerStatus == "clear") {
       return ActionDrawer(tableNumber: drawerTableNumber);
-    } else {
-      return OrderDrawer(tableNumber: drawerTableNumber);
     }
+    if (drawerStatus == "calledService") {
+      return CalledServiceDialog(tableNumber: drawerTableNumber);
+    } else {
+      return ActionDrawer(tableNumber: drawerTableNumber);
+    }
+  }
+
+  //OPEN DRAWER
+  void openDrawer({tableNumber, status, context}) {
+    setState(() {
+      drawerTableNumber = tableNumber;
+      drawerStatus = status;
+
+      Scaffold.of(context).openEndDrawer();
+    });
   }
 
   @override
@@ -42,77 +62,62 @@ class _HomeScreenState extends State<HomeScreen> {
       resizeToAvoidBottomPadding: false,
       backgroundColor: Color(0xFFFFC68C),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection("restaurants")
-            .document("venezia")
-            .collection("tables")
-            .orderBy("tableNumber")
-            .snapshots(),
+        stream: _firestore.orderBy("tableNumber").snapshots(),
         builder: (context, snapshot) {
+          // ON ERROR
           if (!snapshot.hasData) {
-            return Center(
-              child: CircularProgressIndicator(
-                backgroundColor: Colors.orangeAccent,
-              ),
-            );
+            return CustomLoadingIndicator();
           }
-          final table = snapshot.data.documents;
-          List<Widget> tables = [];
+
+          // ITEM LISTS
+          List<Widget> normalTables = [];
           List<Widget> orderedTables = [];
+
+          final table = snapshot.data.documents;
+
+          // CREATE TABLECARD WITH GESTUREDETECTOR
           for (var table in table) {
             final tableNumber = table.data["tableNumber"];
             final status = table.data["status"];
             print(tableNumber);
 
             final tableCard = GestureDetector(
-              onTap: () {
-                setState(() {
-                  drawerTableNumber = tableNumber;
-                  drawerStatus = status;
-                  print("$drawerTableNumber");
-                  print("CLICK!!");
-                  Scaffold.of(context).openEndDrawer();
-                });
-              },
               child: TableCard(
                 tableNumber: tableNumber.toString(),
                 status: status,
               ),
+              onTap: () {
+                openDrawer(
+                  tableNumber: tableNumber,
+                  status: status,
+                  context: context,
+                );
+              },
             );
 
+            // SORT TABLES
             if (table.data["status"] == "ordered" ||
                 table.data["status"] == "payRequest" ||
+                table.data["status"] == "calledService" ||
                 table.data["status"] == "orderRequest") {
               orderedTables.insert(0, tableCard);
             } else {
-              tables.insert(tables.length, tableCard);
+              normalTables.insert(normalTables.length, tableCard);
             }
           }
+
           return Stack(
             children: [
-              Container(
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("images/BackgroundImage.jpg"),
-                    fit: BoxFit.fill,
-                  ),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0),
-                  child: Container(
-                    decoration:
-                        BoxDecoration(color: Colors.white.withOpacity(0.0)),
-                  ),
-                ),
+              ImageBackground(
+                backgroundImage: "images/BackgroundImage.jpg",
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  //ORDERED TABLE LIST | ON FULL
                   if (orderedTables.isNotEmpty)
                     Container(
-                      width: MediaQuery.of(context).size.width / 4,
+                      width: MediaQuery.of(context).size.width * 0.25,
                       height: MediaQuery.of(context).size.height,
                       decoration: BoxDecoration(
                         color: Color(0xFFF8F8F8),
@@ -127,17 +132,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: GridView.count(
                         padding: EdgeInsets.all(
-                            MediaQuery.of(context).size.height / 50),
+                            MediaQuery.of(context).size.height * 0.02),
                         childAspectRatio:
-                            ((MediaQuery.of(context).size.width / 5.4) /
-                                (MediaQuery.of(context).size.height / 5)),
+                            ((MediaQuery.of(context).size.width * 0.185) /
+                                (MediaQuery.of(context).size.height * 0.2)),
                         crossAxisCount: 1,
                         children: orderedTables,
                       ),
                     ),
+
+                  //ORDERED TABLE LIST | ON EMPTY
                   if (orderedTables.isEmpty)
                     Container(
-                      width: MediaQuery.of(context).size.width / 4,
+                      width: MediaQuery.of(context).size.width * 0.25,
                       height: MediaQuery.of(context).size.height,
                       decoration: BoxDecoration(
                         color: Color(0xFFF8F8F8),
@@ -155,28 +162,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Text(
                           "Keine neuen Bestellungen ",
                           style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width / 60,
+                            fontSize: MediaQuery.of(context).size.width * 0.015,
                             color: Colors.black54,
                           ),
                         ),
                       ),
                     ),
+
+                  //NORMAL TABLE LIST
                   Expanded(
                     child: Container(
                       height: MediaQuery.of(context).size.height,
                       child: GridView.count(
                           padding: EdgeInsets.all(
-                              MediaQuery.of(context).size.height / 50),
+                              MediaQuery.of(context).size.height * 0.02),
                           childAspectRatio:
-                              ((MediaQuery.of(context).size.width / 5.4) /
-                                  (MediaQuery.of(context).size.height / 5)),
+                              ((MediaQuery.of(context).size.width * 0.185) /
+                                  (MediaQuery.of(context).size.height * 0.2)),
                           crossAxisCount: 3,
-                          children: tables),
+                          children: normalTables),
                     ),
                   ),
+
+                  // SIDE NAVIGATION BAR
                   Container(
                     height: MediaQuery.of(context).size.height,
-                    width: MediaQuery.of(context).size.width / 18,
+                    width: MediaQuery.of(context).size.width * 0.05,
                     decoration: BoxDecoration(
                       color: Color(0xFFF8F8F8),
                       boxShadow: [
