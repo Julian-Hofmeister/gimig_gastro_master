@@ -18,6 +18,7 @@ class _PayDrawerState extends State<PayDrawer> {
       .document('venezia')
       .collection('tables');
 
+  // TODO ADD ERROR MESSAGE
   Future acceptPayRequest({food, beverages}) async {
     setState(
       () async {
@@ -50,6 +51,7 @@ class _PayDrawerState extends State<PayDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    // TODO ADD ERROR MESSAGE
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore

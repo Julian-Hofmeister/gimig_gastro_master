@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // TODO BUILD LOGIN
   final _firestore = Firestore.instance
       .collection("restaurants")
       .document("venezia")
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String drawerStatus;
 
   //CHECK DRAWER
+  // TODO PRINT ERROR MESSAGE
   Widget checkDrawer() {
     if (drawerStatus == "orderRequest" || drawerStatus == "ordered") {
       return OrderDrawer(tableNumber: drawerTableNumber);
@@ -61,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
       drawerEdgeDragWidth: 200,
       resizeToAvoidBottomPadding: false,
       backgroundColor: Color(0xFFFFC68C),
+      // TODO ADD ERROR MESSAGE
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore.orderBy("tableNumber").snapshots(),
         builder: (context, snapshot) {

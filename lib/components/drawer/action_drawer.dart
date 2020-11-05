@@ -23,24 +23,23 @@ class _ActionDrawerState extends State<ActionDrawer> {
   bool choosen = false;
 
   // SENDING MESSAGE
+  // TODO ADD ERROR MESSAGE
   Future sendMessage() async {
-    setState(
-      () async {
-        // RETURN TO HOMESCREEN
-        Navigator.pop(context);
+    // RETURN TO HOMESCREEN
+    Navigator.pop(context);
 
-        //SEND MESSAGE
-        await _firestore
-            .document("${widget.tableNumber}")
-            .collection("messages")
-            .add({"message": message});
-      },
-    );
+    //SEND MESSAGE
+    await _firestore
+        .document("${widget.tableNumber}")
+        .collection("messages")
+        .add({"message": message});
+
     print("sending message");
   }
 
   @override
   Widget build(BuildContext context) {
+    // TODO ADD ERROR MESSAGE
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore
