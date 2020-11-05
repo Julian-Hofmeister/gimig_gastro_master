@@ -17,6 +17,7 @@ class _OrderDrawerState extends State<OrderDrawer> {
       .document('venezia')
       .collection('tables');
 
+  // TODO ADD ERROR MESSAGE
   Future<void> acceptOrder({food, beverages}) async {
     if (food.isEmpty && beverages.isEmpty) {
       print("nothing to check");
@@ -55,6 +56,7 @@ class _OrderDrawerState extends State<OrderDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    // TODO ADD ERROR MESSAGE
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore
