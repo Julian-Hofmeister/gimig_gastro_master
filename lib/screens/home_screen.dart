@@ -3,12 +3,14 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gimig_gastro_master/components/dialogs/called_service_dialog.dart';
+import 'package:gimig_gastro_master/components/dialogs/error_dialog.dart';
 import 'package:gimig_gastro_master/components/drawer/action_drawer.dart';
 import 'package:gimig_gastro_master/components/drawer/order_drawer.dart';
 import 'package:gimig_gastro_master/components/drawer/pay_drawer.dart';
 import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
 import 'package:gimig_gastro_master/components/elements/image_background.dart';
 import 'package:gimig_gastro_master/components/elements/table_card.dart';
+import 'package:gimig_gastro_master/functions/connection_check.dart';
 
 class HomeScreen extends StatefulWidget {
   static const String id = "home_screen";
@@ -19,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   // TODO BUILD LOGIN
+
   final _firestore = Firestore.instance
       .collection("restaurants")
       .document("venezia")
@@ -26,9 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int drawerTableNumber;
   String drawerStatus;
+  bool isOffline = false;
 
   //CHECK DRAWER
-  // TODO PRINT ERROR MESSAGE
   Widget checkDrawer() {
     if (drawerStatus == "orderRequest" || drawerStatus == "ordered") {
       return OrderDrawer(tableNumber: drawerTableNumber);
@@ -56,6 +59,31 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // ON CONNECTION CHANGE
+  void connectionChanged(dynamic hasConnection) {
+    setState(() {
+      isOffline = !hasConnection;
+      if (isOffline == true) {
+        showDialog(
+          context: context,
+          builder: (_) => ErrorDialog(
+            isOffline: isOffline,
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  initState() {
+    super.initState();
+
+    // LISTEN TO CONNECTION
+    ConnectionStatusSingleton connectionStatus =
+        ConnectionStatusSingleton.getInstance();
+    connectionStatus.connectionChange.listen(connectionChanged);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,58 +91,57 @@ class _HomeScreenState extends State<HomeScreen> {
       drawerEdgeDragWidth: 200,
       resizeToAvoidBottomPadding: false,
       backgroundColor: Color(0xFFFFC68C),
-      // TODO ADD ERROR MESSAGE
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.orderBy("tableNumber").snapshots(),
-        builder: (context, snapshot) {
-          // ON ERROR
-          if (!snapshot.hasData) {
-            return CustomLoadingIndicator();
-          }
+      body: Stack(
+        children: [
+          ImageBackground(
+            backgroundImage: "images/BackgroundImage.jpg",
+          ),
+          StreamBuilder<QuerySnapshot>(
+            // STREAM
+            stream: _firestore.orderBy("tableNumber").snapshots(),
+            builder: (context, snapshot) {
+              // ON ERROR
+              if (!snapshot.hasData) {
+                return CustomLoadingIndicator();
+              }
 
-          // ITEM LISTS
-          List<Widget> normalTables = [];
-          List<Widget> orderedTables = [];
+              // ITEM LISTS
+              List<Widget> normalTables = [];
+              List<Widget> orderedTables = [];
 
-          final table = snapshot.data.documents;
+              final table = snapshot.data.documents;
 
-          // CREATE TABLECARD WITH GESTUREDETECTOR
-          for (var table in table) {
-            final tableNumber = table.data["tableNumber"];
-            final status = table.data["status"];
-            print(tableNumber);
+              // CREATE TABLECARD WITH GESTUREDETECTOR
+              for (var table in table) {
+                final tableNumber = table.data["tableNumber"];
+                final status = table.data["status"];
 
-            final tableCard = GestureDetector(
-              child: TableCard(
-                tableNumber: tableNumber.toString(),
-                status: status,
-              ),
-              onTap: () {
-                openDrawer(
-                  tableNumber: tableNumber,
-                  status: status,
-                  context: context,
+                final tableCard = GestureDetector(
+                  child: TableCard(
+                    tableNumber: tableNumber.toString(),
+                    status: status,
+                  ),
+                  onTap: () {
+                    openDrawer(
+                      tableNumber: tableNumber,
+                      status: status,
+                      context: context,
+                    );
+                  },
                 );
-              },
-            );
 
-            // SORT TABLES
-            if (table.data["status"] == "ordered" ||
-                table.data["status"] == "payRequest" ||
-                table.data["status"] == "calledService" ||
-                table.data["status"] == "orderRequest") {
-              orderedTables.insert(0, tableCard);
-            } else {
-              normalTables.insert(normalTables.length, tableCard);
-            }
-          }
+                // SORT TABLES
+                if (table.data["status"] == "ordered" ||
+                    table.data["status"] == "payRequest" ||
+                    table.data["status"] == "calledService" ||
+                    table.data["status"] == "orderRequest") {
+                  orderedTables.insert(0, tableCard);
+                } else {
+                  normalTables.insert(normalTables.length, tableCard);
+                }
+              }
 
-          return Stack(
-            children: [
-              ImageBackground(
-                backgroundImage: "images/BackgroundImage.jpg",
-              ),
-              Row(
+              return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   //ORDERED TABLE LIST | ON FULL
@@ -204,10 +231,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 ],
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ],
       ),
     );
   }

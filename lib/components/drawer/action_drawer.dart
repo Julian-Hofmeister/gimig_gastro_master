@@ -5,8 +5,8 @@ import 'package:gimig_gastro_master/components/elements/order_item.dart';
 
 class ActionDrawer extends StatefulWidget {
   static const String id = "order_drawer";
-  ActionDrawer({this.tableNumber});
 
+  ActionDrawer({this.tableNumber});
   final int tableNumber;
 
   @override
@@ -14,20 +14,16 @@ class ActionDrawer extends StatefulWidget {
 }
 
 class _ActionDrawerState extends State<ActionDrawer> {
+  bool choosen = false;
+  String message;
+
   final _firestore = Firestore.instance
       .collection("restaurants")
       .document("venezia")
       .collection("tables");
 
-  String message;
-  bool choosen = false;
-
-  // SENDING MESSAGE
-  // TODO ADD ERROR MESSAGE
-  Future sendMessage() async {
-    // RETURN TO HOMESCREEN
+  Future sendMessage({context}) async {
     Navigator.pop(context);
-
     //SEND MESSAGE
     await _firestore
         .document("${widget.tableNumber}")
@@ -39,7 +35,6 @@ class _ActionDrawerState extends State<ActionDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO ADD ERROR MESSAGE
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore
@@ -285,20 +280,8 @@ class _ActionDrawerState extends State<ActionDrawer> {
                     borderRadius:
                         BorderRadius.only(bottomLeft: Radius.circular(15)),
                   ),
-                  // margin: EdgeInsets.only(bottom: 35),
                   width: MediaQuery.of(context).size.width * 0.4,
                   height: MediaQuery.of(context).size.height * 0.08,
-                  // decoration: BoxDecoration(
-                  //   borderRadius: BorderRadius.all(Radius.circular(30)),
-                  //   boxShadow: [
-                  //     BoxShadow(
-                  //       color: Colors.black.withOpacity(0.1),
-                  //       spreadRadius: 3,
-                  //       blurRadius: 10,
-                  //       offset: Offset(0, 3), // changes position of shadow
-                  //     ),
-                  //   ],
-                  // ),
                   child: FlatButton(
                       color: message == "message1"
                           ? Colors.deepOrangeAccent
@@ -317,7 +300,7 @@ class _ActionDrawerState extends State<ActionDrawer> {
                         ),
                       ),
                       onPressed: () {
-                        sendMessage();
+                        sendMessage(context: context);
                       }),
                 ),
               )

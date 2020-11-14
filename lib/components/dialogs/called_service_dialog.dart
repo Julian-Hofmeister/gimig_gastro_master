@@ -1,30 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class CalledServiceDialog extends StatefulWidget {
+class CalledServiceDialog extends StatelessWidget {
   CalledServiceDialog({this.tableNumber});
   final int tableNumber;
 
-  @override
-  _CalledServiceDialogState createState() => _CalledServiceDialogState();
-}
-
-class _CalledServiceDialogState extends State<CalledServiceDialog> {
   final _firestore = Firestore.instance
       .collection("restaurants")
       .document("venezia")
       .collection("tables");
 
-  Future<void> acceptService() async {
+  Future<void> acceptService({context}) async {
     //CLOSE DIALOG
     Navigator.of(context).pop();
-
     //UPDATE STATUS
-    setState(() async {
-      await _firestore
-          .document("${widget.tableNumber}")
-          .updateData({"status": "normal"});
-    });
+    await _firestore.document("$tableNumber").updateData({"status": "normal"});
   }
 
   @override
@@ -43,7 +33,7 @@ class _CalledServiceDialogState extends State<CalledServiceDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
             Text(
-              "Der Tisch ${widget.tableNumber} benötigt eine Bedienung",
+              "Der Tisch $tableNumber benötigt eine Bedienung",
               style: TextStyle(
                 fontSize: MediaQuery.of(context).size.width / 55,
               ),
@@ -69,7 +59,7 @@ class _CalledServiceDialogState extends State<CalledServiceDialog> {
                       ),
                     ),
                     onPressed: () {
-                      acceptService();
+                      acceptService(context: context);
                     },
                   ),
                 ),

@@ -9,17 +9,14 @@ class TableCard extends StatelessWidget {
   String status;
 
   Color checkStatus() {
+    print("TABLENUMBER: $tableNumber WITH STATUS: $status");
     if (status == "ordered") {
-      print("ordered");
       return Colors.redAccent;
     } else if (status == "payRequest") {
-      print("paying");
       return Colors.blueAccent;
     } else if (status == "accepted") {
-      print("accepted");
       return Colors.white.withOpacity(0);
     } else {
-      print("error");
       return Colors.white.withOpacity(0);
     }
   }

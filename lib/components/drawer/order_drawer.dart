@@ -3,64 +3,53 @@ import 'package:flutter/material.dart';
 import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
 
-class OrderDrawer extends StatefulWidget {
+class OrderDrawer extends StatelessWidget {
   OrderDrawer({this.tableNumber});
   final int tableNumber;
 
-  @override
-  _OrderDrawerState createState() => _OrderDrawerState();
-}
-
-class _OrderDrawerState extends State<OrderDrawer> {
   final _firestore = Firestore.instance
       .collection('restaurants')
       .document('venezia')
       .collection('tables');
 
-  // TODO ADD ERROR MESSAGE
-  Future<void> acceptOrder({food, beverages}) async {
+  Future<void> acceptOrder({food, beverages, context}) async {
     if (food.isEmpty && beverages.isEmpty) {
       print("nothing to check");
       print("$food $beverages");
     } else {
-      setState(
-        () async {
-          // BACK TO HOMESCREEN
-          Navigator.pop(context);
+      // BACK TO HOMESCREEN
+      Navigator.pop(context);
 
-          //UPDATE STATUS
-          await _firestore
-              .document("${widget.tableNumber}")
-              .updateData({"status": "normal", "ableToPay": true});
+      //UPDATE STATUS
+      await _firestore
+          .document("$tableNumber")
+          .updateData({"status": "normal", "ableToPay": true});
 
-          // ACCEPT ORDER
-          QuerySnapshot querySnapshot = await Firestore.instance
-              .document("${widget.tableNumber}")
-              .collection("orders")
-              .getDocuments();
+      // ACCEPT ORDER
+      QuerySnapshot querySnapshot = await Firestore.instance
+          .document("$tableNumber")
+          .collection("orders")
+          .getDocuments();
 
-          for (int i = 0; i < querySnapshot.documents.length; i++) {
-            var item = querySnapshot.documents[i].documentID;
-            print(item);
-            await _firestore
-                .document("${widget.tableNumber}")
-                .collection("orders")
-                .document("$item")
-                .updateData({"inProgress": true});
-          }
-          print("ORDER ACCEPTED");
-        },
-      );
+      for (int i = 0; i < querySnapshot.documents.length; i++) {
+        var item = querySnapshot.documents[i].documentID;
+        print(item);
+        await _firestore
+            .document("$tableNumber")
+            .collection("orders")
+            .document("$item")
+            .updateData({"inProgress": true});
+      }
+      print("ORDER ACCEPTED");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO ADD ERROR MESSAGE
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore
-          .document("${widget.tableNumber}")
+          .document("$tableNumber")
           .collection("orders")
           .orderBy("timestamp")
           .snapshots(),
@@ -128,7 +117,7 @@ class _OrderDrawerState extends State<OrderDrawer> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Tisch ${widget.tableNumber}",
+                          "Tisch $tableNumber",
                           style: TextStyle(
                             fontSize: MediaQuery.of(context).size.width * 0.02,
                             fontWeight: FontWeight.bold,
@@ -265,23 +254,25 @@ class _OrderDrawerState extends State<OrderDrawer> {
                   width: MediaQuery.of(context).size.width * 0.4,
                   height: MediaQuery.of(context).size.height * 0.08,
                   child: FlatButton(
-                      color: Colors.deepOrangeAccent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.only(bottomLeft: Radius.circular(15)),
+                    color: Colors.deepOrangeAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.only(bottomLeft: Radius.circular(15)),
+                    ),
+                    child: Text(
+                      "Bestellung Annehmen",
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.015,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1,
                       ),
-                      child: Text(
-                        "Bestellung Annehmen",
-                        style: TextStyle(
-                          fontSize: MediaQuery.of(context).size.width * 0.015,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      onPressed: () {
-                        acceptOrder(food: food, beverages: beverages);
-                      }),
+                    ),
+                    onPressed: () {
+                      acceptOrder(
+                          food: food, beverages: beverages, context: context);
+                    },
+                  ),
                 ),
               )
             ],

@@ -3,59 +3,45 @@ import 'package:flutter/material.dart';
 import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
 
-class PayDrawer extends StatefulWidget {
+class PayDrawer extends StatelessWidget {
   PayDrawer({this.tableNumber});
-
   final int tableNumber;
 
-  @override
-  _PayDrawerState createState() => _PayDrawerState();
-}
-
-class _PayDrawerState extends State<PayDrawer> {
   final _firestore = Firestore.instance
       .collection('restaurants')
       .document('venezia')
       .collection('tables');
 
-  // TODO ADD ERROR MESSAGE
-  Future acceptPayRequest({food, beverages}) async {
-    setState(
-      () async {
-        Navigator.pop(context);
+  Future acceptPayRequest({context}) async {
+    Navigator.pop(context);
 
-        //UPDATE STATUS
-        await _firestore
-            .document("${widget.tableNumber}")
-            .updateData({"status": "paid"});
+    //UPDATE STATUS
+    await _firestore.document("$tableNumber").updateData({"status": "paid"});
 
-        // CHECK AS PAID
-        QuerySnapshot querySnapshot = await _firestore
-            .document("${widget.tableNumber}")
-            .collection("orders")
-            .getDocuments();
+    // CHECK AS PAID
+    QuerySnapshot querySnapshot = await _firestore
+        .document("$tableNumber")
+        .collection("orders")
+        .getDocuments();
 
-        for (int i = 0; i < querySnapshot.documents.length; i++) {
-          var item = querySnapshot.documents[i].documentID;
-          print(item);
-          await _firestore
-              .document("${widget.tableNumber}")
-              .collection("orders")
-              .document("$item")
-              .updateData({"isPaid": true});
-        }
-        print("PAY REQUEST ACCEPTED");
-      },
-    );
+    for (int i = 0; i < querySnapshot.documents.length; i++) {
+      var item = querySnapshot.documents[i].documentID;
+      print(item);
+      await _firestore
+          .document("$tableNumber")
+          .collection("orders")
+          .document("$item")
+          .updateData({"isPaid": true});
+    }
+    print("PAY REQUEST ACCEPTED");
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO ADD ERROR MESSAGE
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore
-          .document("${widget.tableNumber}")
+          .document("$tableNumber")
           .collection("orders")
           .orderBy("timestamp")
           .snapshots(),
@@ -153,7 +139,7 @@ class _PayDrawerState extends State<PayDrawer> {
                   ),
                   Center(
                     child: Text(
-                      "Tisch ${widget.tableNumber}",
+                      "Tisch $tableNumber",
                       style: TextStyle(
                         fontSize: MediaQuery.of(context).size.width * 0.025,
                         fontWeight: FontWeight.bold,
@@ -276,20 +262,8 @@ class _PayDrawerState extends State<PayDrawer> {
                     borderRadius:
                         BorderRadius.only(bottomLeft: Radius.circular(15)),
                   ),
-                  // margin: EdgeInsets.only(bottom: 35),
                   width: MediaQuery.of(context).size.width * 0.4,
                   height: MediaQuery.of(context).size.height * 0.08,
-                  // decoration: BoxDecoration(
-                  //   borderRadius: BorderRadius.all(Radius.circular(30)),
-                  //   boxShadow: [
-                  //     BoxShadow(
-                  //       color: Colors.black.withOpacity(0.1),
-                  //       spreadRadius: 3,
-                  //       blurRadius: 10,
-                  //       offset: Offset(0, 3), // changes position of shadow
-                  //     ),
-                  //   ],
-                  // ),
                   child: FlatButton(
                       color: Colors.deepOrangeAccent,
                       shape: RoundedRectangleBorder(
@@ -306,7 +280,7 @@ class _PayDrawerState extends State<PayDrawer> {
                         ),
                       ),
                       onPressed: () {
-                        acceptPayRequest(food: food, beverages: beverages);
+                        acceptPayRequest(context: context);
                       }),
                 ),
               )
