@@ -22,6 +22,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // TODO BUILD LOGIN
 
+  ConnectionStatusSingleton connectionStatus =
+      ConnectionStatusSingleton.getInstance();
+
   final _firestore = Firestore.instance
       .collection("restaurants")
       .document("venezia")
@@ -30,6 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int drawerTableNumber;
   String drawerStatus;
   bool isOffline = false;
+
+  Stream tableStream;
 
   //CHECK DRAWER
   Widget checkDrawer() {
@@ -76,11 +81,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   initState() {
-    super.initState();
+    tableStream = Firestore.instance
+        .collection("restaurants")
+        .document("venezia")
+        .collection("tables")
+        .orderBy("tableNumber")
+        .snapshots();
 
+    super.initState();
     // LISTEN TO CONNECTION
-    ConnectionStatusSingleton connectionStatus =
-        ConnectionStatusSingleton.getInstance();
     connectionStatus.connectionChange.listen(connectionChanged);
   }
 
@@ -98,8 +107,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           StreamBuilder<QuerySnapshot>(
             // STREAM
-            stream: _firestore.orderBy("tableNumber").snapshots(),
-            builder: (context, snapshot) {
+            stream: tableStream,
+            builder:
+                (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
               // ON ERROR
               if (!snapshot.hasData) {
                 return CustomLoadingIndicator();
