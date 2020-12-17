@@ -18,26 +18,15 @@ class ErrorDialog extends StatelessWidget {
         color: Colors.white,
         child: Stack(
           children: [
-            if (isOffline == true)
-              Center(
-                child: Text(
-                  "Es tut uns leid. Es scheint sie haben keine Internet Verbindung",
-                  style: TextStyle(
-                    fontSize: MediaQuery.of(context).size.width / 55,
-                  ),
-                  textAlign: TextAlign.center,
+            Center(
+              child: Text(
+                "Es tut uns leid. Es scheint sie haben keine Internetverbindung.",
+                style: TextStyle(
+                  fontSize: MediaQuery.of(context).size.width / 55,
                 ),
+                textAlign: TextAlign.center,
               ),
-            if (isOffline == false)
-              Center(
-                child: Text(
-                  "Die Internet Verbindung wurde wieder hergestellt!",
-                  style: TextStyle(
-                    fontSize: MediaQuery.of(context).size.width / 55,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            ),
             Align(
               alignment: Alignment.bottomRight,
               child: FlatButton(
@@ -45,7 +34,7 @@ class ErrorDialog extends StatelessWidget {
                   Navigator.pop(context);
                 },
                 child: Text(
-                  "close",
+                  "schließen",
                   style: TextStyle(
                     fontSize: MediaQuery.of(context).size.width / 55,
                     color: Colors.black54,

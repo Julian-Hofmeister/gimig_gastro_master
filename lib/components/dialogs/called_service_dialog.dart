@@ -5,16 +5,16 @@ class CalledServiceDialog extends StatelessWidget {
   CalledServiceDialog({this.tableNumber});
   final int tableNumber;
 
-  final _firestore = Firestore.instance
+  final _firestore = FirebaseFirestore.instance
       .collection("restaurants")
-      .document("venezia")
+      .doc("venezia")
       .collection("tables");
 
   Future<void> acceptService({context}) async {
     //CLOSE DIALOG
     Navigator.of(context).pop();
     //UPDATE STATUS
-    await _firestore.document("$tableNumber").updateData({"status": "normal"});
+    await _firestore.doc("$tableNumber").update({"status": "normal"});
   }
 
   @override

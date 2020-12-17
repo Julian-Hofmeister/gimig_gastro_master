@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
@@ -17,16 +18,16 @@ class _ActionDrawerState extends State<ActionDrawer> {
   bool choosen = false;
   String message;
 
-  final _firestore = Firestore.instance
+  final _firestore = FirebaseFirestore.instance
       .collection("restaurants")
-      .document("venezia")
+      .doc("${FirebaseAuth.instance.currentUser.email}")
       .collection("tables");
 
   Future sendMessage({context}) async {
     Navigator.pop(context);
     //SEND MESSAGE
     await _firestore
-        .document("${widget.tableNumber}")
+        .doc("${widget.tableNumber}")
         .collection("messages")
         .add({"message": message});
 
@@ -38,7 +39,7 @@ class _ActionDrawerState extends State<ActionDrawer> {
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore
-          .document("${widget.tableNumber}")
+          .doc("${widget.tableNumber}")
           .collection("orders")
           .orderBy("timestamp")
           .snapshots(),
@@ -54,15 +55,15 @@ class _ActionDrawerState extends State<ActionDrawer> {
         List<Widget> completeOrder = [];
 
         // CREATE ORDER ITEM
-        final item = snapshot.data.documents;
+        final item = snapshot.data.docs;
         for (var item in item) {
-          final itemName = item.data['name'];
-          final itemPrice = item.data['price'];
-          final itemAmount = item.data['amount'];
-          final isFood = item.data['isFood'];
+          final itemName = item.data()['name'];
+          final itemPrice = item.data()['price'];
+          final itemAmount = item.data()['amount'];
+          final isFood = item.data()['isFood'];
 
-          final inProgress = item.data['inProgress'];
-          final isPaid = item.data['isPaid'];
+          final inProgress = item.data()['inProgress'];
+          final isPaid = item.data()['isPaid'];
 
           final order = OrderItem(
             itemName: itemName,

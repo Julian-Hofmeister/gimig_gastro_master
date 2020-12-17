@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
 import 'package:gimig_gastro_master/components/elements/order_item.dart';
@@ -7,9 +8,9 @@ class OrderDrawer extends StatelessWidget {
   OrderDrawer({this.tableNumber});
   final int tableNumber;
 
-  final _firestore = Firestore.instance
+  final _firestore = FirebaseFirestore.instance
       .collection('restaurants')
-      .document('venezia')
+      .doc("${FirebaseAuth.instance.currentUser.email}")
       .collection('tables');
 
   Future<void> acceptOrder({food, beverages, context}) async {
@@ -22,23 +23,23 @@ class OrderDrawer extends StatelessWidget {
 
       //UPDATE STATUS
       await _firestore
-          .document("$tableNumber")
-          .updateData({"status": "normal", "ableToPay": true});
+          .doc("$tableNumber")
+          .update({"status": "normal", "ableToPay": true});
 
       // ACCEPT ORDER
-      QuerySnapshot querySnapshot = await Firestore.instance
-          .document("$tableNumber")
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .doc("$tableNumber")
           .collection("orders")
-          .getDocuments();
+          .get();
 
-      for (int i = 0; i < querySnapshot.documents.length; i++) {
-        var item = querySnapshot.documents[i].documentID;
+      for (int i = 0; i < querySnapshot.docs.length; i++) {
+        var item = querySnapshot.docs[i].id;
         print(item);
         await _firestore
-            .document("$tableNumber")
+            .doc("$tableNumber")
             .collection("orders")
-            .document("$item")
-            .updateData({"inProgress": true});
+            .doc("$item")
+            .update({"inProgress": true});
       }
       print("ORDER ACCEPTED");
     }
@@ -49,7 +50,7 @@ class OrderDrawer extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       //STREAM
       stream: _firestore
-          .document("$tableNumber")
+          .doc("$tableNumber")
           .collection("orders")
           .orderBy("timestamp")
           .snapshots(),
@@ -64,17 +65,17 @@ class OrderDrawer extends StatelessWidget {
         List<Widget> beverages = [];
         List<Widget> food = [];
 
-        final snapshotItem = snapshot.data.documents;
+        final snapshotItem = snapshot.data.docs;
 
         // CREATE ORDERITEM
         for (var item in snapshotItem) {
-          final itemName = item.data['name'];
-          final itemPrice = item.data['price'];
-          final itemAmount = item.data['amount'];
-          final isFood = item.data['isFood'];
+          final itemName = item.data()['name'];
+          final itemPrice = item.data()['price'];
+          final itemAmount = item.data()['amount'];
+          final isFood = item.data()['isFood'];
 
-          final inProgress = item.data['inProgress'];
-          final isPaid = item.data['isPaid'];
+          final inProgress = item.data()['inProgress'];
+          final isPaid = item.data()['isPaid'];
 
           final order = OrderItem(
             itemName: itemName,

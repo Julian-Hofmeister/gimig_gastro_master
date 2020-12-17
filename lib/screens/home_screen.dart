@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gimig_gastro_master/components/dialogs/called_service_dialog.dart';
 import 'package:gimig_gastro_master/components/dialogs/error_dialog.dart';
@@ -22,19 +23,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // TODO BUILD LOGIN
 
-  ConnectionStatusSingleton connectionStatus =
-      ConnectionStatusSingleton.getInstance();
-
-  final _firestore = Firestore.instance
-      .collection("restaurants")
-      .document("venezia")
-      .collection("tables");
-
   int drawerTableNumber;
   String drawerStatus;
   bool isOffline = false;
+  String currentUserEmail = FirebaseAuth.instance.currentUser.email;
 
-  Stream tableStream;
+  var _firestore = FirebaseFirestore.instance
+      .collection("restaurants")
+      .doc("${FirebaseAuth.instance.currentUser.email}")
+      .collection("tables");
 
   //CHECK DRAWER
   Widget checkDrawer() {
@@ -81,16 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   initState() {
-    tableStream = Firestore.instance
-        .collection("restaurants")
-        .document("venezia")
-        .collection("tables")
-        .orderBy("tableNumber")
-        .snapshots();
-
     super.initState();
-    // LISTEN TO CONNECTION
-    connectionStatus.connectionChange.listen(connectionChanged);
+
+    listenToConnection(context);
   }
 
   @override
@@ -107,9 +97,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           StreamBuilder<QuerySnapshot>(
             // STREAM
-            stream: tableStream,
-            builder:
-                (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+            stream: _firestore.orderBy("tableNumber").snapshots(),
+            builder: (context, snapshot) {
               // ON ERROR
               if (!snapshot.hasData) {
                 return CustomLoadingIndicator();
@@ -119,12 +108,12 @@ class _HomeScreenState extends State<HomeScreen> {
               List<Widget> normalTables = [];
               List<Widget> orderedTables = [];
 
-              final table = snapshot.data.documents;
+              final table = snapshot.data.docs;
 
               // CREATE TABLECARD WITH GESTUREDETECTOR
               for (var table in table) {
-                final tableNumber = table.data["tableNumber"];
-                final status = table.data["status"];
+                final tableNumber = table.data()["tableNumber"];
+                final status = table.data()["status"];
 
                 final tableCard = GestureDetector(
                   child: TableCard(
@@ -141,10 +130,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
 
                 // SORT TABLES
-                if (table.data["status"] == "ordered" ||
-                    table.data["status"] == "payRequest" ||
-                    table.data["status"] == "calledService" ||
-                    table.data["status"] == "orderRequest") {
+                if (table.data()["status"] == "ordered" ||
+                    table.data()["status"] == "payRequest" ||
+                    table.data()["status"] == "calledService" ||
+                    table.data()["status"] == "orderRequest") {
                   orderedTables.insert(0, tableCard);
                 } else {
                   normalTables.insert(normalTables.length, tableCard);
