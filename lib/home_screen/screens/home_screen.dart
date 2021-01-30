@@ -3,15 +3,14 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:gimig_gastro_master/components/dialogs/called_service_dialog.dart';
-import 'package:gimig_gastro_master/components/dialogs/error_dialog.dart';
-import 'package:gimig_gastro_master/components/drawer/action_drawer.dart';
-import 'package:gimig_gastro_master/components/drawer/order_drawer.dart';
-import 'package:gimig_gastro_master/components/drawer/pay_drawer.dart';
-import 'package:gimig_gastro_master/components/elements/custom_loading_indicator.dart';
-import 'package:gimig_gastro_master/components/elements/image_background.dart';
-import 'package:gimig_gastro_master/components/elements/table_card.dart';
-import 'package:gimig_gastro_master/functions/connection_check.dart';
+import 'package:gimig_gastro_master/home_screen/components/loading_indicator/custom_loading_indicator.dart';
+import 'package:gimig_gastro_master/home_screen/components/background/image_background.dart';
+import 'package:gimig_gastro_master/home_screen/components/tabel_card/table_card.dart';
+import 'package:gimig_gastro_master/connection/services/connection_check.dart';
+import 'package:gimig_gastro_master/home_screen/dialogs/error_dialog.dart';
+import 'package:gimig_gastro_master/home_screen/dialogs/info_dialog/dialog/info_dialog.dart';
+import 'package:gimig_gastro_master/home_screen/dialogs/order_dialog/dialog/order_dialog.dart';
+import 'package:gimig_gastro_master/home_screen/dialogs/pay_request_dialog/dialog/pay_request_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   static const String id = "home_screen";
@@ -21,8 +20,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // TODO BUILD LOGIN
-
   int drawerTableNumber;
   String drawerStatus;
   bool isOffline = false;
@@ -32,34 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
       .collection("restaurants")
       .doc("${FirebaseAuth.instance.currentUser.email}")
       .collection("tables");
-
-  //CHECK DRAWER
-  Widget checkDrawer() {
-    if (drawerStatus == "orderRequest" || drawerStatus == "ordered") {
-      return OrderDrawer(tableNumber: drawerTableNumber);
-    }
-    if (drawerStatus == "payRequest") {
-      return PayDrawer(tableNumber: drawerTableNumber);
-    }
-    if (drawerStatus == "normal" || drawerStatus == "clear") {
-      return ActionDrawer(tableNumber: drawerTableNumber);
-    }
-    if (drawerStatus == "calledService") {
-      return CalledServiceDialog(tableNumber: drawerTableNumber);
-    } else {
-      return ActionDrawer(tableNumber: drawerTableNumber);
-    }
-  }
-
-  //OPEN DRAWER
-  void openDrawer({tableNumber, status, context}) {
-    setState(() {
-      drawerTableNumber = tableNumber;
-      drawerStatus = status;
-
-      Scaffold.of(context).openEndDrawer();
-    });
-  }
 
   // ON CONNECTION CHANGE
   void connectionChanged(dynamic hasConnection) {
@@ -86,8 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      endDrawer: checkDrawer(),
-      drawerEdgeDragWidth: 200,
       resizeToAvoidBottomPadding: false,
       backgroundColor: Color(0xFFFFC68C),
       body: Stack(
@@ -114,26 +81,75 @@ class _HomeScreenState extends State<HomeScreen> {
               for (var table in table) {
                 final tableNumber = table.data()["tableNumber"];
                 final status = table.data()["status"];
+                final Timestamp timestamp = table.data()["orderTime"];
+                final payRequest = table.data()["payRequest"];
+                final orderRequest = table.data()["orderRequest"];
+
+                final isCache = table.data()["isCache"];
+                final isTogether = table.data()["isTogether"];
+                final spentTime = table.data()["spentTime"];
+
+                final serviceRequest = table.data()["serviceRequest"];
+
+                if (timestamp != null) {
+                  print(timestamp.millisecondsSinceEpoch);
+                  print(DateTime.now().millisecondsSinceEpoch.toInt());
+                  print(DateTime.now().millisecondsSinceEpoch.toInt() -
+                      timestamp.millisecondsSinceEpoch);
+                }
 
                 final tableCard = GestureDetector(
                   child: TableCard(
                     tableNumber: tableNumber.toString(),
                     status: status,
+                    timestamp: timestamp,
+                    payRequest: payRequest,
+                    orderRequest: orderRequest,
+                    serviceRequest: serviceRequest,
                   ),
                   onTap: () {
-                    openDrawer(
-                      tableNumber: tableNumber,
-                      status: status,
-                      context: context,
-                    );
+                    if (orderRequest == true) {
+                      showDialog(
+                        context: (context),
+                        builder: (_) => OrderDialog(
+                          tableNumber: tableNumber.toString(),
+                        ),
+                      );
+                    }
+                    if (payRequest == true) {
+                      showDialog(
+                        context: (context),
+                        builder: (_) => PayRequestDialog(
+                          tableNumber: tableNumber.toString(),
+                          isCache: isCache,
+                          isTogether: isTogether,
+                          spentTime: spentTime,
+                        ),
+                      );
+                    }
+                    if (serviceRequest == true) {
+                      showDialog(
+                        context: (context),
+                        builder: (_) => InfoDialog(
+                          tableNumber: tableNumber.toString(),
+                        ),
+                      );
+                    }
+                    if (status == "normal") {
+                      showDialog(
+                        context: (context),
+                        builder: (_) => OrderDialog(
+                          tableNumber: tableNumber.toString(),
+                        ),
+                      );
+                    }
                   },
                 );
 
                 // SORT TABLES
-                if (table.data()["status"] == "ordered" ||
-                    table.data()["status"] == "payRequest" ||
-                    table.data()["status"] == "calledService" ||
-                    table.data()["status"] == "orderRequest") {
+                if (table.data()["payRequest"] == true ||
+                    table.data()["orderRequest"] == true ||
+                    table.data()["serviceRequest"] == true) {
                   orderedTables.insert(0, tableCard);
                 } else {
                   normalTables.insert(normalTables.length, tableCard);
@@ -146,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   //ORDERED TABLE LIST | ON FULL
                   if (orderedTables.isNotEmpty)
                     Container(
-                      width: MediaQuery.of(context).size.width * 0.25,
+                      width: MediaQuery.of(context).size.width * 0.263,
                       height: MediaQuery.of(context).size.height,
                       decoration: BoxDecoration(
                         color: Color(0xFFF8F8F8),
@@ -160,11 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       child: GridView.count(
+                        childAspectRatio: (200 / 130),
                         padding: EdgeInsets.all(
                             MediaQuery.of(context).size.height * 0.02),
-                        childAspectRatio:
-                            ((MediaQuery.of(context).size.width * 0.185) /
-                                (MediaQuery.of(context).size.height * 0.2)),
                         crossAxisCount: 1,
                         children: orderedTables,
                       ),
@@ -173,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   //ORDERED TABLE LIST | ON EMPTY
                   if (orderedTables.isEmpty)
                     Container(
-                      width: MediaQuery.of(context).size.width * 0.25,
+                      width: MediaQuery.of(context).size.width * 0.263,
                       height: MediaQuery.of(context).size.height,
                       decoration: BoxDecoration(
                         color: Color(0xFFF8F8F8),
@@ -186,12 +200,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      child: Align(
-                        alignment: Alignment.center,
+                      child: Center(
                         child: Text(
                           "Keine neuen Bestellungen ",
                           style: TextStyle(
-                            fontSize: MediaQuery.of(context).size.width * 0.015,
                             color: Colors.black54,
                           ),
                         ),
@@ -205,30 +217,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: GridView.count(
                           padding: EdgeInsets.all(
                               MediaQuery.of(context).size.height * 0.02),
-                          childAspectRatio:
-                              ((MediaQuery.of(context).size.width * 0.185) /
-                                  (MediaQuery.of(context).size.height * 0.2)),
+                          childAspectRatio: (200 / 130),
                           crossAxisCount: 3,
                           children: normalTables),
                     ),
                   ),
-
-                  // SIDE NAVIGATION BAR
-                  Container(
-                    height: MediaQuery.of(context).size.height,
-                    width: MediaQuery.of(context).size.width * 0.05,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFF8F8F8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          spreadRadius: 3,
-                          blurRadius: 25,
-                          offset: Offset(0, 3), // changes position of shadow
-                        ),
-                      ],
-                    ),
-                  )
                 ],
               );
             },

@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gimig_gastro_master/functions/authentication_servie.dart';
-import 'package:gimig_gastro_master/screens/home_screen.dart';
+import 'package:gimig_gastro_master/authentication/services/authentication_servie.dart';
+import 'package:gimig_gastro_master/home_screen/screens/home_screen.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {

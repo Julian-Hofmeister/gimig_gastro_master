@@ -2,11 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gimig_gastro_master/functions/authentication_servie.dart';
+import 'package:gimig_gastro_master/authentication/services/authentication_servie.dart';
 import 'package:gimig_gastro_master/main/route_generator.dart';
-import 'package:gimig_gastro_master/screens/home_screen.dart';
-import 'package:gimig_gastro_master/screens/login_screen.dart';
+import 'package:gimig_gastro_master/authentication/screens/login_screen.dart';
 import 'package:provider/provider.dart';
+
+import 'home_screen/screens/home_screen.dart';
 
 class MyBehavior extends ScrollBehavior {
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gimig_gastro_master/home_screen/screens/home_screen.dart';
 import 'package:gimig_gastro_master/main.dart';
-import 'package:gimig_gastro_master/screens/home_screen.dart';
 
 class RouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {
